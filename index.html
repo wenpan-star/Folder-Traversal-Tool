@@ -1,0 +1,2174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>📁 文件夹遍历工具 - 提取所有名称与路径</title>
+    <style>
+        /* ========== CSS 变量 & 重置 ========== */
+        :root {
+            --primary: #4f6ef7;
+            --primary-dark: #3a56d4;
+            --primary-light: #e8ecff;
+            --bg: #f6f8fc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 4px 24px rgba(79, 110, 247, 0.10);
+            --radius: 12px;
+            --radius-sm: 6px;
+            --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            --transition: 0.2s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 24px;
+            position: relative;
+        }
+
+        /* ========== 主容器 ========== */
+        .app {
+            max-width: 1280px;
+            width: 100%;
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 28px 32px 32px;
+            display: flex;
+            flex-direction: column;
+            height: fit-content;
+            max-height: 98vh;
+        }
+
+        /* ========== 头部 ========== */
+        .header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-left .icon {
+            font-size: 28px;
+        }
+
+        .header-left h1 {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 18px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background var(--transition), transform 0.1s, box-shadow var(--transition);
+            white-space: nowrap;
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn:hover {
+            background: #e9edf5;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+            box-shadow: 0 4px 14px rgba(79, 110, 247, 0.30);
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: #fff;
+            border-color: #10b981;
+        }
+        .btn-success:hover {
+            background: #059669;
+            border-color: #059669;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.30);
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: #fff;
+            border-color: #ef4444;
+        }
+        .btn-danger:hover {
+            background: #dc2626;
+            border-color: #dc2626;
+            box-shadow: 0 4px 14px rgba(239, 68, 68, 0.25);
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+            color: #fff;
+            border-color: #f59e0b;
+        }
+        .btn-warning:hover {
+            background: #d97706;
+            border-color: #d97706;
+            box-shadow: 0 4px 14px rgba(245, 158, 11, 0.30);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .btn-sm {
+            padding: 4px 12px;
+            font-size: 12px;
+        }
+
+        /* ========== 统计栏 ========== */
+        .stats {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 24px 32px;
+            padding: 14px 0 16px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg);
+            margin: 0 -32px;
+            padding-left: 32px;
+            padding-right: 32px;
+        }
+
+        .stats-item {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+            font-size: 14px;
+        }
+
+        .stats-item .num {
+            font-weight: 700;
+            font-size: 18px;
+            color: var(--primary);
+            min-width: 28px;
+        }
+
+        .stats-item .label {
+            color: var(--text-secondary);
+        }
+
+        .stats-item .num.folders {
+            color: #8b5cf6;
+        }
+        .stats-item .num.files {
+            color: #10b981;
+        }
+
+        .stats-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .stats-right .root-path {
+            background: #fff;
+            padding: 4px 14px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            font-size: 13px;
+            max-width: 260px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--text);
+        }
+
+        /* ========== 搜索栏 ========== */
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 0 14px;
+        }
+
+        .search-box {
+            flex: 1 1 200px;
+            min-width: 120px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 0 12px;
+            transition: border var(--transition);
+        }
+        .search-box:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 110, 247, 0.12);
+        }
+
+        .search-box .icon {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        .search-box input {
+            border: none;
+            background: transparent;
+            padding: 8px 0;
+            font-size: 14px;
+            width: 100%;
+            outline: none;
+            color: var(--text);
+        }
+
+        .search-box input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: auto;
+        }
+
+        .badge {
+            font-size: 12px;
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        /* ========== 层级选择下拉框 ========== */
+        .depth-selector {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 4px 10px;
+        }
+        .depth-selector label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+        .depth-selector select {
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            padding: 4px 6px;
+            outline: none;
+            cursor: pointer;
+            color: var(--text);
+            border-radius: 4px;
+        }
+        .depth-selector select:hover {
+            background: #e9edf5;
+        }
+
+        /* ========== 排序选择下拉框 ========== */
+        .sort-selector {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 4px 10px;
+        }
+        .sort-selector label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+        .sort-selector select {
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            padding: 4px 6px;
+            outline: none;
+            cursor: pointer;
+            color: var(--text);
+            border-radius: 4px;
+        }
+        .sort-selector select:hover {
+            background: #e9edf5;
+        }
+
+        /* ========== 表格容器 ========== */
+        .table-wrap {
+            flex: 1;
+            overflow: auto;
+            margin-top: 4px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            min-height: 180px;
+            max-height: 55vh;
+        }
+
+        .table-wrap table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .table-wrap thead {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .table-wrap th {
+            background: #f1f4fa;
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            padding: 10px 14px;
+            text-align: left;
+            border-bottom: 2px solid var(--border);
+            white-space: nowrap;
+        }
+
+        .table-wrap td {
+            padding: 9px 14px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+            word-break: break-word;
+        }
+
+        .table-wrap tbody tr:hover {
+            background: #f8faff;
+        }
+        .table-wrap tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .col-index {
+            width: 52px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .col-name {
+            min-width: 120px;
+            font-weight: 500;
+        }
+
+        .col-path {
+            min-width: 200px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-family: 'SF Mono', 'JetBrains Mono', monospace;
+        }
+
+        .col-type {
+            width: 80px;
+            text-align: center;
+        }
+
+        .col-action {
+            width: 80px;
+            text-align: center;
+        }
+
+        .type-tag {
+            display: inline-block;
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            background: var(--bg);
+            color: var(--text-secondary);
+        }
+        .type-tag.folder {
+            background: #ede9fe;
+            color: #7c3aed;
+        }
+        .type-tag.file {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .btn-copy-path {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: background var(--transition), color var(--transition);
+        }
+        .btn-copy-path:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        .btn-copy-path.copied {
+            color: #10b981;
+        }
+
+        /* ========== 空状态 ========== */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.6;
+        }
+        .empty-state h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+        .empty-state p {
+            max-width: 400px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* ========== 分页控件 ========== */
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 0 4px;
+            flex-wrap: wrap;
+        }
+        .pagination .page-info {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin: 0 8px;
+        }
+        .pagination .btn-page {
+            min-width: 32px;
+            padding: 4px 10px;
+            font-size: 13px;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+        .pagination .btn-page:hover:not(:disabled) {
+            background: var(--primary-light);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        .pagination .btn-page:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .pagination .btn-page.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+
+        /* ========== 拖放提示覆盖层 ========== */
+        .drop-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(79, 110, 247, 0.15);
+            backdrop-filter: blur(2px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+        .drop-overlay.active {
+            display: flex;
+        }
+        .drop-overlay .drop-content {
+            background: #fff;
+            border: 3px dashed var(--primary);
+            border-radius: var(--radius);
+            padding: 48px 64px;
+            text-align: center;
+            pointer-events: auto;
+        }
+        .drop-overlay .drop-content .icon {
+            font-size: 56px;
+            margin-bottom: 16px;
+        }
+        .drop-overlay .drop-content h2 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: var(--primary);
+        }
+        .drop-overlay .drop-content p {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        /* ========== 错误详情弹窗 ========== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-content {
+            background: #fff;
+            border-radius: var(--radius);
+            padding: 24px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 70vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .modal-content h3 {
+            margin-bottom: 16px;
+            color: var(--text);
+        }
+        .modal-content ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        .modal-content li {
+            padding: 8px 12px;
+            background: var(--bg);
+            border-radius: var(--radius-sm);
+            margin-bottom: 6px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            word-break: break-word;
+        }
+        .modal-content .close-btn {
+            margin-top: 16px;
+            text-align: right;
+        }
+
+        /* ========== 加载 / Toast ========== */
+        .toast {
+            position: fixed;
+            bottom: 32px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: #1e293b;
+            color: #fff;
+            padding: 12px 28px;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+            opacity: 0;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            pointer-events: none;
+            z-index: 999;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ========== 响应式 ========== */
+        @media (max-width: 768px) {
+            .app {
+                padding: 16px;
+                max-height: none;
+            }
+            .header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+            .header-actions {
+                flex-wrap: wrap;
+            }
+            .header-actions .btn {
+                flex: 1 1 auto;
+                font-size: 13px;
+                padding: 6px 14px;
+            }
+            .stats {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+                margin: 0 -16px;
+                padding: 12px 16px;
+            }
+            .stats-right {
+                margin-left: 0;
+                flex-wrap: wrap;
+            }
+            .stats-right .root-path {
+                max-width: 100%;
+            }
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .toolbar-right {
+                margin-left: 0;
+                justify-content: flex-start;
+            }
+            .table-wrap {
+                max-height: 40vh;
+            }
+            .table-wrap th,
+            .table-wrap td {
+                padding: 6px 10px;
+                font-size: 13px;
+            }
+            .col-index {
+                width: 36px;
+            }
+            .col-type {
+                width: 60px;
+            }
+            .col-action {
+                width: 56px;
+            }
+            .col-name {
+                min-width: 80px;
+            }
+            .col-path {
+                min-width: 120px;
+            }
+            .stats-item .num {
+                font-size: 16px;
+            }
+            .pagination .btn-page {
+                padding: 3px 8px;
+                font-size: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-left h1 {
+                font-size: 18px;
+            }
+            .btn {
+                font-size: 12px;
+                padding: 5px 12px;
+            }
+            .table-wrap {
+                max-height: 30vh;
+            }
+            .stats-item {
+                font-size: 13px;
+            }
+        }
+
+        /* ========== 滚动条美化 ========== */
+        .table-wrap::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .table-wrap::-webkit-scrollbar-track {
+            background: #f1f4fa;
+            border-radius: 4px;
+        }
+        .table-wrap::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .table-wrap::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ====== 拖放提示覆盖层 ====== -->
+    <div class="drop-overlay" id="dropOverlay">
+        <div class="drop-content">
+            <div class="icon">📂</div>
+            <h2>释放以遍历文件夹</h2>
+            <p>支持 Chrome、Edge、Firefox</p>
+        </div>
+    </div>
+
+    <!-- ====== 错误详情弹窗 ====== -->
+    <div class="modal-overlay" id="errorModalOverlay">
+        <div class="modal-content">
+            <h3>⚠️ 遍历警告详情</h3>
+            <ul id="errorList"></ul>
+            <div class="close-btn">
+                <button class="btn" id="btnCloseErrorModal">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 应用 ====== -->
+    <div class="app" role="main">
+
+        <!-- 头部 -->
+        <header class="header">
+            <div class="header-left">
+                <span class="icon">📁</span>
+                <h1>文件夹遍历</h1>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary" id="btnSelect" title="选择要遍历的文件夹">
+                    📂 选择文件夹
+                </button>
+                <button class="btn btn-warning" id="btnCancel" disabled title="取消当前遍历" style="display:none;">
+                    ⏹ 取消遍历
+                </button>
+                <button class="btn btn-success" id="btnExportCSV" disabled title="导出为 CSV 文件">
+                    📊 导出 CSV
+                </button>
+                <button class="btn btn-success" id="btnExportText" disabled title="导出为纯文本路径列表">
+                    📄 导出文本
+                </button>
+                <button class="btn btn-danger" id="btnClear" disabled title="清空当前结果">
+                    🗑 清空
+                </button>
+                <button class="btn" id="btnShowErrors" disabled title="查看遍历警告详情" style="display:none;">
+                    ⚠️ 警告详情
+                </button>
+            </div>
+        </header>
+
+        <!-- 统计栏 -->
+        <div class="stats" id="statsBar">
+            <div class="stats-item">
+                <span class="num folders" id="folderCount">0</span>
+                <span class="label">文件夹</span>
+            </div>
+            <div class="stats-item">
+                <span class="num files" id="fileCount">0</span>
+                <span class="label">文件</span>
+            </div>
+            <div class="stats-item">
+                <span class="num" id="totalCount">0</span>
+                <span class="label">条目</span>
+            </div>
+            <div class="stats-right">
+                <span id="statusText" style="display:flex;align-items:center;gap:6px;">
+                    <span id="statusDot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#94a3b8;"></span>
+                    <span id="statusLabel">就绪</span>
+                </span>
+                <span class="root-path" id="rootPathDisplay" title="当前根目录">未选择</span>
+            </div>
+        </div>
+
+        <!-- 工具栏 -->
+        <div class="toolbar">
+            <div class="search-box">
+                <span class="icon">🔍</span>
+                <input type="text" id="searchInput" placeholder="搜索名称或路径…" autocomplete="off" />
+            </div>
+            <!-- 层级深度选择器 -->
+            <div class="depth-selector">
+                <label for="depthSelect">层级深度：</label>
+                <select id="depthSelect" title="选择最大层级深度">
+                    <option value="all">不限深度</option>
+                </select>
+                <span id="depthFilterCount" style="font-size:12px;color:var(--text-secondary);"></span>
+            </div>
+            <!-- 排序选择器 -->
+            <div class="sort-selector">
+                <label for="sortFieldSelect">排序：</label>
+                <select id="sortFieldSelect" title="选择排序字段">
+                    <option value="default">默认（文件夹在前）</option>
+                    <option value="name">名称</option>
+                    <option value="path">路径</option>
+                    <option value="type">类型</option>
+                    <option value="depth">层级深度</option>
+                    <option value="originalIndex">原始索引</option>
+                </select>
+                <select id="sortOrderSelect" title="选择排序方向">
+                    <option value="asc">升序</option>
+                    <option value="desc">降序</option>
+                </select>
+            </div>
+            <div class="toolbar-right">
+                <span class="badge" id="resultBadge">0 条</span>
+                <button class="btn btn-sm" id="btnCopyAll" disabled title="复制所有路径到剪贴板">
+                    📋 复制全部
+                </button>
+            </div>
+        </div>
+
+        <!-- 表格 -->
+        <div class="table-wrap" id="tableWrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="col-index">#</th>
+                        <th class="col-name">名称</th>
+                        <th class="col-path">路径（相对根目录）</th>
+                        <th class="col-type">类型</th>
+                        <th class="col-action">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- 空状态由 JS 渲染 -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 分页控件 -->
+        <div class="pagination" id="paginationContainer" style="display:none;">
+            <button class="btn-page" id="btnPrevPage" disabled>‹ 上一页</button>
+            <span class="page-info" id="pageInfo">第 1 / 1 页</span>
+            <button class="btn-page" id="btnNextPage" disabled>下一页 ›</button>
+        </div>
+
+        <!-- 底部信息 -->
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;font-size:12px;color:var(--text-secondary);flex-wrap:wrap;gap:8px;">
+            <span>💡 支持 Chrome / Edge 86+，使用 File System Access API（兼容降级方案） | 也可以将文件夹拖入窗口</span>
+            <span id="lastUpdate"></span>
+            <span id="versionInfo" style="font-weight:500;color:var(--primary);">v2.0.0</span>
+        </div>
+    </div>
+
+    <!-- ====== Toast ====== -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ============================================================
+        //  文件夹遍历工具 - v2.0.0
+        //  重大更新（基于 v1.3.0）：
+        //  1. 安全性增强：CSV 导出防止公式注入（以 = + - @ 开头的字段自动添加前导空格）。
+        //  2. 添加排序功能：支持按名称、路径、类型、层级深度、原始索引排序，并可选升/降序。
+        //  3. 添加拖放文件夹支持：将文件夹拖入页面即可遍历（兼容 Firefox 等）。
+        //  4. 遍历过程中禁用所有操作按钮（除取消外），防止状态冲突。
+        //  5. 遍历错误可查看详情：点击“警告详情”按钮弹出错误列表。
+        //  6. 导出文件名自动添加时间戳。
+        //  7. 双击表格行可复制该行路径。
+        //  8. 层级选择旁实时显示当前过滤后的条目总数。
+        //  9. 取消遍历时保留已获取的部分数据，并提示“已取消（保留部分结果）”。
+        //  10. 代码结构更清晰，变量名完整，无简写，注释详尽。
+        //  11. 保留原有全部功能，未做任何降级或删除。
+        // ============================================================
+
+        (function() {
+            'use strict';
+
+            // ---------- DOM 元素引用 ----------
+            const buttonSelectFolder = document.getElementById('btnSelect');
+            const buttonCancelTraversal = document.getElementById('btnCancel');
+            const buttonExportCSV = document.getElementById('btnExportCSV');
+            const buttonExportText = document.getElementById('btnExportText');
+            const buttonClearAll = document.getElementById('btnClear');
+            const buttonCopyAllPaths = document.getElementById('btnCopyAll');
+            const buttonShowErrors = document.getElementById('btnShowErrors');
+            const searchInputElement = document.getElementById('searchInput');
+            const depthSelectElement = document.getElementById('depthSelect');
+            const depthFilterCountElement = document.getElementById('depthFilterCount');
+            const sortFieldSelectElement = document.getElementById('sortFieldSelect');
+            const sortOrderSelectElement = document.getElementById('sortOrderSelect');
+            const tableBodyElement = document.getElementById('tableBody');
+            const folderCountElement = document.getElementById('folderCount');
+            const fileCountElement = document.getElementById('fileCount');
+            const totalCountElement = document.getElementById('totalCount');
+            const rootPathDisplayElement = document.getElementById('rootPathDisplay');
+            const statusDotElement = document.getElementById('statusDot');
+            const statusLabelElement = document.getElementById('statusLabel');
+            const resultBadgeElement = document.getElementById('resultBadge');
+            const lastUpdateElement = document.getElementById('lastUpdate');
+            const toastElement = document.getElementById('toast');
+            const versionInfoElement = document.getElementById('versionInfo');
+            const paginationContainerElement = document.getElementById('paginationContainer');
+            const buttonPreviousPage = document.getElementById('btnPrevPage');
+            const buttonNextPage = document.getElementById('btnNextPage');
+            const pageInfoElement = document.getElementById('pageInfo');
+            const dropOverlayElement = document.getElementById('dropOverlay');
+            const errorModalOverlayElement = document.getElementById('errorModalOverlay');
+            const errorListElement = document.getElementById('errorList');
+            const buttonCloseErrorModal = document.getElementById('btnCloseErrorModal');
+
+            // ---------- 状态变量 ----------
+            let allEntries = [];                 // 存储所有遍历结果，每个条目：{ name, path, type, depth, originalIndex, handle? }
+            let rootFolderName = '';             // 根目录名称
+            let isTraversing = false;            // 是否正在遍历中
+            let toastTimer = null;               // Toast 定时器
+            let abortController = null;          // 用于取消遍历的 AbortController
+            let currentPage = 1;                 // 当前页码（从1开始）
+            const pageSize = 200;                // 每页显示条目数
+            let totalPages = 1;                  // 总页数
+            let filteredEntriesForDisplay = [];  // 当前应用层级+搜索过滤后的条目列表（用于分页显示）
+            let searchQuery = '';                // 当前搜索关键词
+            let maxDepthLimit = Infinity;        // 当前最大层级限制，Infinity 表示不限
+            let currentSortField = 'default';    // 当前排序字段
+            let currentSortOrder = 'asc';        // 当前排序方向
+            let traversalErrorLog = [];          // 遍历过程中的警告信息
+
+            // ---------- 常量 ----------
+            const STORE_FILE_HANDLES = true;      // 是否存储 FileSystemHandle（默认存储，保持原功能）
+            const CSV_MIME_TYPE = 'text/csv;charset=utf-8';
+            const TEXT_MIME_TYPE = 'text/plain;charset=utf-8';
+            const FALLBACK_TIMEOUT_MS = 30000;    // 降级方案用户取消检测超时（30秒）
+
+            // ========== 工具函数 ==========
+
+            /**
+             * 显示 Toast 提示
+             * @param {string} message - 提示内容
+             * @param {number} duration - 显示时长（毫秒）
+             */
+            function showToast(message, duration = 2600) {
+                if (toastTimer) {
+                    clearTimeout(toastTimer);
+                    toastElement.classList.remove('show');
+                }
+                toastElement.textContent = message;
+                toastElement.classList.add('show');
+                toastTimer = setTimeout(() => {
+                    toastElement.classList.remove('show');
+                    toastTimer = null;
+                }, duration);
+            }
+
+            /**
+             * 设置状态指示器
+             * @param {string} text - 状态文本
+             * @param {boolean} isBusy - 是否忙碌中（黄色闪烁）
+             */
+            function setStatus(text, isBusy = false) {
+                statusLabelElement.textContent = text;
+                statusDotElement.style.background = isBusy ? '#f59e0b' : '#10b981';
+                if (isBusy) {
+                    statusDotElement.style.animation = 'pulse 1s infinite';
+                } else {
+                    statusDotElement.style.animation = 'none';
+                }
+                // 确保动画 keyframes 存在
+                if (!document.getElementById('statusDotKeyframes')) {
+                    const style = document.createElement('style');
+                    style.id = 'statusDotKeyframes';
+                    style.textContent = `
+                        @keyframes pulse {
+                            0%, 100% { opacity: 1; }
+                            50% { opacity: 0.3; }
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+            }
+
+            /**
+             * 更新统计数据和按钮状态
+             */
+            function updateStatisticsAndButtons() {
+                const folderCount = allEntries.filter(entry => entry.type === 'folder').length;
+                const fileCount = allEntries.filter(entry => entry.type === 'file').length;
+                folderCountElement.textContent = folderCount;
+                fileCountElement.textContent = fileCount;
+                totalCountElement.textContent = allEntries.length;
+                resultBadgeElement.textContent = allEntries.length + ' 条';
+                const hasData = allEntries.length > 0;
+                buttonExportCSV.disabled = !hasData;
+                buttonExportText.disabled = !hasData;
+                buttonClearAll.disabled = !hasData;
+                buttonCopyAllPaths.disabled = !hasData;
+                depthSelectElement.disabled = !hasData;
+                sortFieldSelectElement.disabled = !hasData;
+                sortOrderSelectElement.disabled = !hasData;
+                if (!hasData) {
+                    depthSelectElement.value = 'all';
+                    depthFilterCountElement.textContent = '';
+                    maxDepthLimit = Infinity;
+                }
+            }
+
+            /**
+             * 更新层级深度选择下拉框的选项
+             */
+            function updateDepthSelectOptions() {
+                const select = depthSelectElement;
+                const currentValue = select.value;
+                select.innerHTML = ''; // 清空所有选项
+                // 添加“不限深度”选项
+                const allOption = document.createElement('option');
+                allOption.value = 'all';
+                allOption.textContent = '不限深度';
+                select.appendChild(allOption);
+
+                if (allEntries.length > 0) {
+                    // 计算最大深度
+                    const maxDepth = Math.max(...allEntries.map(entry => entry.depth || 0));
+                    for (let depth = 1; depth <= maxDepth; depth++) {
+                        const option = document.createElement('option');
+                        option.value = depth;
+                        option.textContent = `≤ ${depth} 层`;
+                        select.appendChild(option);
+                    }
+                }
+
+                // 恢复之前选中的值（如果仍然有效）
+                if ([...select.options].some(option => option.value === currentValue)) {
+                    select.value = currentValue;
+                } else {
+                    select.value = 'all';
+                }
+                // 更新 maxDepthLimit 变量
+                maxDepthLimit = select.value === 'all' ? Infinity : parseInt(select.value, 10);
+                updateDepthFilterCount(); // 更新层级过滤计数
+            }
+
+            /**
+             * 更新层级过滤计数显示
+             */
+            function updateDepthFilterCount() {
+                const filteredCount = getEntriesByDepthLimit().length;
+                depthFilterCountElement.textContent = filteredCount > 0 ? `(${filteredCount} 条)` : '';
+            }
+
+            /**
+             * HTML 转义，防止 XSS
+             * @param {string} text - 要转义的文本
+             * @returns {string} 转义后的 HTML 安全文本
+             */
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            /**
+             * CSV 字段转义：处理引号、逗号、换行，并防止公式注入
+             * @param {any} value - 要转义的值
+             * @returns {string} CSV 安全字段
+             */
+            function csvEscape(value) {
+                if (typeof value !== 'string') {
+                    value = String(value);
+                }
+                // 防止 CSV 公式注入：如果以 = + - @ 开头，添加一个前导空格（或单引号）
+                if (/^[=+\-@]/.test(value)) {
+                    value = "'" + value;
+                }
+                if (/[",\n\r]/.test(value)) {
+                    return '"' + value.replace(/"/g, '""') + '"';
+                }
+                return value;
+            }
+
+            /**
+             * 根据当前层级限制获取条目列表（不排序，保留原始顺序）
+             * @returns {Array} 过滤后的条目数组
+             */
+            function getEntriesByDepthLimit() {
+                if (maxDepthLimit === Infinity) {
+                    return allEntries.slice();
+                }
+                return allEntries.filter(entry => entry.depth <= maxDepthLimit);
+            }
+
+            /**
+             * 应用排序到条目数组
+             * @param {Array} entryList - 要排序的条目数组
+             * @returns {Array} 排序后的新数组（原数组不变）
+             */
+            function applySorting(entryList) {
+                const entriesCopy = entryList.slice();
+                // 默认排序：文件夹在前，文件在后，按名称升序
+                const defaultComparator = (a, b) => {
+                    if (a.type !== b.type) return a.type === 'folder' ? -1 : 1;
+                    return a.name.localeCompare(b.name);
+                };
+                let comparator;
+                if (currentSortField === 'default') {
+                    comparator = defaultComparator;
+                } else {
+                    comparator = (a, b) => {
+                        let valueA, valueB;
+                        switch (currentSortField) {
+                            case 'name':
+                                valueA = a.name.toLowerCase();
+                                valueB = b.name.toLowerCase();
+                                break;
+                            case 'path':
+                                valueA = a.path.toLowerCase();
+                                valueB = b.path.toLowerCase();
+                                break;
+                            case 'type':
+                                valueA = a.type;
+                                valueB = b.type;
+                                break;
+                            case 'depth':
+                                valueA = a.depth;
+                                valueB = b.depth;
+                                break;
+                            case 'originalIndex':
+                                valueA = a.originalIndex;
+                                valueB = b.originalIndex;
+                                break;
+                            default:
+                                return 0;
+                        }
+                        if (valueA < valueB) return -1;
+                        if (valueA > valueB) return 1;
+                        return 0;
+                    };
+                }
+                // 根据排序方向调整
+                const finalComparator = currentSortOrder === 'desc'
+                    ? (a, b) => comparator(b, a)
+                    : comparator;
+                return entriesCopy.sort(finalComparator);
+            }
+
+            /**
+             * 计算总页数
+             * @param {number} totalItems - 总条目数
+             * @returns {number} 总页数
+             */
+            function calculateTotalPages(totalItems) {
+                return Math.ceil(totalItems / pageSize);
+            }
+
+            /**
+             * 获取指定页的数据切片
+             * @param {Array} data - 数据数组
+             * @param {number} page - 页码（从1开始）
+             * @returns {Array} 该页数据
+             */
+            function getPageItems(data, page) {
+                const startIndex = (page - 1) * pageSize;
+                const endIndex = Math.min(startIndex + pageSize, data.length);
+                return data.slice(startIndex, endIndex);
+            }
+
+            /**
+             * 更新分页控件状态
+             */
+            function updatePaginationControls() {
+                if (filteredEntriesForDisplay.length === 0) {
+                    paginationContainerElement.style.display = 'none';
+                    return;
+                }
+                paginationContainerElement.style.display = 'flex';
+                totalPages = calculateTotalPages(filteredEntriesForDisplay.length);
+                pageInfoElement.textContent = `第 ${currentPage} / ${totalPages} 页（共 ${filteredEntriesForDisplay.length} 条）`;
+                buttonPreviousPage.disabled = currentPage <= 1;
+                buttonNextPage.disabled = currentPage >= totalPages;
+            }
+
+            /**
+             * 跳转到指定页
+             * @param {number} page - 目标页码
+             */
+            function goToPage(page) {
+                if (page < 1) page = 1;
+                if (page > totalPages) page = totalPages;
+                if (page === currentPage && filteredEntriesForDisplay.length > 0) return;
+                currentPage = page;
+                renderTable();
+                updatePaginationControls();
+            }
+
+            // ========== 渲染表格 ==========
+
+            /**
+             * 渲染当前表格（应用层级过滤、搜索过滤、排序）
+             */
+            function renderTable() {
+                // 1. 获取层级过滤后的条目
+                let baseEntries = getEntriesByDepthLimit();
+
+                // 2. 应用排序
+                let sortedEntries = applySorting(baseEntries);
+
+                // 3. 应用搜索过滤
+                const query = searchInputElement.value.trim().toLowerCase();
+                searchQuery = query;
+                if (query) {
+                    filteredEntriesForDisplay = sortedEntries.filter(entry =>
+                        entry.name.toLowerCase().includes(query) ||
+                        entry.path.toLowerCase().includes(query)
+                    );
+                } else {
+                    filteredEntriesForDisplay = sortedEntries;
+                }
+
+                // 4. 调整当前页码（如果超出范围）
+                if (currentPage > calculateTotalPages(filteredEntriesForDisplay.length)) {
+                    currentPage = Math.max(1, calculateTotalPages(filteredEntriesForDisplay.length));
+                }
+
+                // 5. 获取当前页数据
+                const pageData = getPageItems(filteredEntriesForDisplay, currentPage);
+
+                // 6. 渲染表格主体
+                if (pageData.length === 0) {
+                    tableBodyElement.innerHTML = `
+                        <tr><td colspan="5">
+                            <div class="empty-state">
+                                <div class="icon">${query ? '🔍' : '📂'}</div>
+                                <h3>${query ? '没有匹配的条目' : '还没有数据'}</h3>
+                                <p>${query ? '试试其他关键词' : '点击「选择文件夹」或将文件夹拖入窗口'}</p>
+                            </div>
+                        </td></tr>
+                    `;
+                } else {
+                    let tableHtml = '';
+                    for (let index = 0; index < pageData.length; index++) {
+                        const entry = pageData[index];
+                        // 计算全局序号（基于过滤后的列表，但显示为当前过滤后的顺序）
+                        const globalIndex = (currentPage - 1) * pageSize + index + 1;
+                        const originalIndex = entry.originalIndex;
+                        const typeLabel = entry.type === 'folder' ? '文件夹' : '文件';
+                        const typeClass = entry.type === 'folder' ? 'folder' : 'file';
+                        const icon = entry.type === 'folder' ? '📂' : '📄';
+                        const nameEscaped = escapeHtml(entry.name);
+                        const pathEscaped = escapeHtml(entry.path);
+                        const depth = entry.depth;
+                        tableHtml += `
+                            <tr data-path="${pathEscaped}" title="双击复制路径">
+                                <td class="col-index" title="原始索引：${originalIndex}，深度：${depth}">${globalIndex}</td>
+                                <td class="col-name">${icon} ${nameEscaped}</td>
+                                <td class="col-path" title="${pathEscaped} (深度 ${depth})">${pathEscaped}</td>
+                                <td class="col-type"><span class="type-tag ${typeClass}">${typeLabel}</span></td>
+                                <td class="col-action">
+                                    <button class="btn-copy-path" data-path="${pathEscaped}" title="复制路径" aria-label="复制路径">📋</button>
+                                </td>
+                            </tr>
+                        `;
+                    }
+                    tableBodyElement.innerHTML = tableHtml;
+
+                    // 绑定复制按钮事件
+                    tableBodyElement.querySelectorAll('.btn-copy-path').forEach(button => {
+                        button.addEventListener('click', function(event) {
+                            event.stopPropagation(); // 阻止冒泡到行双击事件
+                            const path = this.dataset.path;
+                            copyToClipboard(path, '✅ 已复制路径');
+                            this.classList.add('copied');
+                            setTimeout(() => this.classList.remove('copied'), 1200);
+                        });
+                    });
+
+                    // 绑定行双击事件（复制路径）
+                    tableBodyElement.querySelectorAll('tr[data-path]').forEach(row => {
+                        row.addEventListener('dblclick', function() {
+                            const path = this.dataset.path;
+                            copyToClipboard(path, '✅ 已复制路径');
+                            // 视觉反馈：短暂高亮
+                            this.style.backgroundColor = 'var(--primary-light)';
+                            setTimeout(() => {
+                                this.style.backgroundColor = '';
+                            }, 300);
+                        });
+                    });
+                }
+
+                updatePaginationControls();
+            }
+
+            // ========== 剪贴板操作 ==========
+
+            /**
+             * 复制文本到剪贴板
+             * @param {string} text - 要复制的文本
+             * @param {string} successMessage - 成功提示信息
+             */
+            function copyToClipboard(text, successMessage = '已复制') {
+                if (!text) return;
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        showToast(successMessage);
+                    }).catch(() => {
+                        fallbackCopyToClipboard(text);
+                    });
+                } else {
+                    fallbackCopyToClipboard(text);
+                }
+            }
+
+            /**
+             * 降级复制方法（适用于不支持 Clipboard API 的浏览器）
+             * @param {string} text - 要复制的文本
+             */
+            function fallbackCopyToClipboard(text) {
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-9999px';
+                textArea.style.top = '-9999px';
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showToast('✅ 已复制');
+                } catch (error) {
+                    showToast('❌ 复制失败，请手动复制');
+                }
+                document.body.removeChild(textArea);
+            }
+
+            // ========== 遍历核心函数 ==========
+
+            /**
+             * 递归遍历目录（原生 File System Access API）
+             * @param {FileSystemDirectoryHandle} directoryHandle - 目录句柄
+             * @param {string} currentPath - 当前相对路径（包含根目录名）
+             * @param {AbortSignal} signal - 用于取消的信号
+             * @param {Array} errorLog - 错误日志数组
+             * @param {Function} onEntryFound - 回调函数，每发现一个条目就调用，参数为条目对象
+             * @returns {Promise<void>} 不返回结果，直接通过回调推送
+             */
+            async function traverseDirectoryNative(directoryHandle, currentPath, signal, errorLog, onEntryFound) {
+                try {
+                    for await (const [name, handle] of directoryHandle.entries()) {
+                        if (signal && signal.aborted) {
+                            throw new DOMException('遍历已取消', 'AbortError');
+                        }
+                        const isFolder = handle.kind === 'directory';
+                        const fullPath = currentPath ? `${currentPath}/${name}` : name;
+                        const depth = fullPath.split('/').length - 1;
+                        const entry = {
+                            name: name,
+                            path: fullPath,
+                            type: isFolder ? 'folder' : 'file',
+                            depth: depth,
+                        };
+                        if (STORE_FILE_HANDLES) {
+                            entry.handle = handle;
+                        }
+                        // 调用回调，将条目添加到外部数组
+                        onEntryFound(entry);
+                        if (isFolder) {
+                            try {
+                                await traverseDirectoryNative(handle, fullPath, signal, errorLog, onEntryFound);
+                            } catch (error) {
+                                if (error.name === 'AbortError') {
+                                    throw error; // 重新抛出取消错误
+                                }
+                                // 记录子目录遍历错误
+                                errorLog.push(`无法访问目录：${fullPath}（${error.message || '未知错误'}）`);
+                                console.warn('遍历子目录出错:', fullPath, error);
+                            }
+                        }
+                    }
+                } catch (error) {
+                    if (error.name === 'AbortError') {
+                        throw error; // 重新抛出以触发取消处理
+                    }
+                    // 其他未捕获错误
+                    errorLog.push(`遍历目录出错：${currentPath || directoryHandle.name}（${error.message || '未知错误'}）`);
+                    console.warn('遍历目录出错:', error);
+                }
+            }
+
+            /**
+             * 递归遍历目录（拖放或降级方案使用 FileSystemEntry API）
+             * @param {FileSystemDirectoryEntry} directoryEntry - 目录条目
+             * @param {string} currentPath - 当前相对路径
+             * @param {Array} errorLog - 错误日志数组
+             * @param {Function} onEntryFound - 回调函数
+             * @returns {Promise<void>}
+             */
+            function traverseDirectoryEntry(directoryEntry, currentPath, errorLog, onEntryFound) {
+                return new Promise((resolve, reject) => {
+                    const reader = directoryEntry.createReader();
+                    const readEntries = () => {
+                        reader.readEntries(async (entries) => {
+                            if (entries.length === 0) {
+                                resolve();
+                                return;
+                            }
+                            for (const entry of entries) {
+                                const isFolder = entry.isDirectory;
+                                const name = entry.name;
+                                const fullPath = currentPath ? `${currentPath}/${name}` : name;
+                                const depth = fullPath.split('/').length - 1;
+                                const entryObject = {
+                                    name: name,
+                                    path: fullPath,
+                                    type: isFolder ? 'folder' : 'file',
+                                    depth: depth,
+                                };
+                                onEntryFound(entryObject);
+                                if (isFolder) {
+                                    try {
+                                        await traverseDirectoryEntry(entry, fullPath, errorLog, onEntryFound);
+                                    } catch (error) {
+                                        errorLog.push(`无法访问目录：${fullPath}（${error.message || '未知错误'}）`);
+                                        console.warn('遍历子目录出错:', fullPath, error);
+                                    }
+                                }
+                            }
+                            // 继续读取下一批（目录可能很大，readEntries 一次只返回最多100条）
+                            readEntries();
+                        }, (error) => {
+                            errorLog.push(`读取目录出错：${currentPath || directoryEntry.name}（${error.message || '未知错误'}）`);
+                            reject(error);
+                        });
+                    };
+                    readEntries();
+                });
+            }
+
+            // ========== 选择文件夹（原生 File System Access API） ==========
+
+            /**
+             * 使用原生 API 选择并遍历文件夹
+             * @returns {Promise<boolean>} 是否成功处理（true=成功，false=失败或取消）
+             */
+            async function handleSelectFolderNative() {
+                if (isTraversing) return false;
+                if (!window.showDirectoryPicker) {
+                    showToast('❌ 当前浏览器不支持 File System Access API，尝试使用降级方案', 4000);
+                    return false;
+                }
+                try {
+                    const rootHandle = await window.showDirectoryPicker();
+                    rootFolderName = rootHandle.name;
+                    rootPathDisplayElement.textContent = rootFolderName;
+                    setStatus('正在遍历…', true);
+                    isTraversing = true;
+                    // 禁用所有操作按钮，启用取消
+                    setButtonsEnabledDuringTraversal(false);
+                    buttonCancelTraversal.style.display = 'inline-flex';
+                    buttonCancelTraversal.disabled = false;
+                    buttonShowErrors.style.display = 'none'; // 隐藏警告详情按钮
+
+                    // 清空旧数据和错误日志
+                    allEntries = [];
+                    filteredEntriesForDisplay = [];
+                    traversalErrorLog = [];
+                    currentPage = 1;
+                    maxDepthLimit = Infinity;
+                    depthSelectElement.value = 'all';
+                    depthFilterCountElement.textContent = '';
+                    // 重置排序为默认
+                    sortFieldSelectElement.value = 'default';
+                    sortOrderSelectElement.value = 'asc';
+                    currentSortField = 'default';
+                    currentSortOrder = 'asc';
+                    updateDepthSelectOptions(); // 清空选项
+                    renderTable();
+                    updateStatisticsAndButtons();
+
+                    // 创建 AbortController
+                    abortController = new AbortController();
+                    const signal = abortController.signal;
+
+                    // 用于收集遍历过程中的错误
+                    const errorLog = [];
+
+                    // 遍历，并实时添加到 allEntries
+                    await traverseDirectoryNative(rootHandle, rootFolderName, signal, errorLog, (entry) => {
+                        entry.originalIndex = allEntries.length + 1; // 分配原始索引
+                        allEntries.push(entry);
+                        // 可以在这里更新统计（但为了性能，不频繁更新，可以在遍历结束后统一更新）
+                    });
+
+                    // 排序并更新 UI
+                    applySortingToAllEntries(); // 应用默认排序到 allEntries
+                    updateDepthSelectOptions();
+                    currentPage = 1;
+                    renderTable();
+                    updateStatisticsAndButtons();
+                    lastUpdateElement.textContent = `📅 更新于 ${new Date().toLocaleString()}`;
+                    setStatus(`✅ 完成 — 共 ${allEntries.length} 个条目`, false);
+
+                    // 如果有错误，显示警告详情按钮
+                    if (errorLog.length > 0) {
+                        buttonShowErrors.style.display = 'inline-flex';
+                        buttonShowErrors.disabled = false;
+                        traversalErrorLog = errorLog;
+                        showToast(`⚠️ 有 ${errorLog.length} 个目录未能完全访问，点击“警告详情”查看`, 5000);
+                        console.warn('遍历警告详情:', errorLog);
+                    } else {
+                        buttonShowErrors.style.display = 'none';
+                        showToast(`✅ 遍历完成！共 ${allEntries.length} 个条目`, 2000);
+                    }
+                    return true;
+                } catch (error) {
+                    if (error.name === 'AbortError' || error.message?.includes('abort')) {
+                        // 用户取消：保留已获取的数据（如果有）
+                        setStatus('已取消（保留部分结果）', false);
+                        // 应用排序和更新 UI
+                        applySortingToAllEntries();
+                        updateDepthSelectOptions();
+                        currentPage = 1;
+                        renderTable();
+                        updateStatisticsAndButtons();
+                        if (allEntries.length > 0) {
+                            lastUpdateElement.textContent = `📅 更新于 ${new Date().toLocaleString()}`;
+                            showToast(`⏹ 遍历已取消，保留了 ${allEntries.length} 条已获取的结果`, 3000);
+                        } else {
+                            showToast('⏹ 遍历已取消', 2000);
+                        }
+                    } else if (error.name === 'NotAllowedError') {
+                        setStatus('权限被拒绝', false);
+                        showToast('❌ 权限被拒绝，无法访问文件夹', 4000);
+                    } else {
+                        console.error(error);
+                        showToast('❌ 遍历失败: ' + (error.message || '未知错误'), 4000);
+                        setStatus('❌ 出错', false);
+                    }
+                    return false;
+                } finally {
+                    isTraversing = false;
+                    setButtonsEnabledDuringTraversal(true);
+                    buttonCancelTraversal.style.display = 'none';
+                    buttonCancelTraversal.disabled = true;
+                    abortController = null;
+                }
+            }
+
+            /**
+             * 对 allEntries 应用当前排序（原地排序）
+             */
+            function applySortingToAllEntries() {
+                allEntries = applySorting(allEntries);
+            }
+
+            /**
+             * 遍历期间设置按钮启用/禁用状态
+             * @param {boolean} enabled - true 启用，false 禁用（除取消外）
+             */
+            function setButtonsEnabledDuringTraversal(enabled) {
+                buttonSelectFolder.disabled = !enabled;
+                buttonExportCSV.disabled = !enabled || allEntries.length === 0;
+                buttonExportText.disabled = !enabled || allEntries.length === 0;
+                buttonClearAll.disabled = !enabled || allEntries.length === 0;
+                buttonCopyAllPaths.disabled = !enabled || allEntries.length === 0;
+                searchInputElement.disabled = !enabled;
+                depthSelectElement.disabled = !enabled;
+                sortFieldSelectElement.disabled = !enabled;
+                sortOrderSelectElement.disabled = !enabled;
+                // 注意：取消按钮始终可用（由外部控制）
+            }
+
+            // ========== 降级方案：使用 input webkitdirectory ==========
+
+            /**
+             * 使用 input webkitdirectory 降级遍历文件夹
+             * @returns {Promise<boolean>} 是否成功处理
+             */
+            async function handleSelectFolderFallback() {
+                return new Promise((resolve) => {
+                    const fileInput = document.createElement('input');
+                    fileInput.type = 'file';
+                    fileInput.webkitdirectory = true;
+                    fileInput.style.display = 'none';
+                    document.body.appendChild(fileInput);
+
+                    let isResolved = false;
+
+                    // 清理函数
+                    const cleanup = (result) => {
+                        if (!isResolved) {
+                            isResolved = true;
+                            document.body.removeChild(fileInput);
+                            window.removeEventListener('focus', onWindowFocus);
+                            clearTimeout(timeoutId);
+                            resolve(result);
+                        }
+                    };
+
+                    // 超时处理
+                    const timeoutId = setTimeout(() => {
+                        cleanup(false);
+                    }, FALLBACK_TIMEOUT_MS);
+
+                    // 监听窗口重新获得焦点（用户可能取消了对话框）
+                    const onWindowFocus = () => {
+                        setTimeout(() => {
+                            if (!isResolved) {
+                                cleanup(false);
+                            }
+                        }, 500);
+                    };
+                    window.addEventListener('focus', onWindowFocus);
+
+                    fileInput.addEventListener('change', async (event) => {
+                        const fileList = event.target.files;
+                        if (!fileList || fileList.length === 0) {
+                            cleanup(false);
+                            return;
+                        }
+
+                        // 设置忙碌状态
+                        isTraversing = true;
+                        setButtonsEnabledDuringTraversal(false);
+                        buttonCancelTraversal.style.display = 'inline-flex';
+                        buttonCancelTraversal.disabled = false;
+                        buttonShowErrors.style.display = 'none';
+                        setStatus('正在处理文件列表…', true);
+
+                        // 清空旧数据
+                        allEntries = [];
+                        filteredEntriesForDisplay = [];
+                        traversalErrorLog = [];
+                        currentPage = 1;
+                        maxDepthLimit = Infinity;
+                        depthSelectElement.value = 'all';
+                        depthFilterCountElement.textContent = '';
+                        sortFieldSelectElement.value = 'default';
+                        sortOrderSelectElement.value = 'asc';
+                        currentSortField = 'default';
+                        currentSortOrder = 'asc';
+
+                        // 提取根目录名称
+                        rootFolderName = fileList[0].webkitRelativePath.split('/')[0];
+                        rootPathDisplayElement.textContent = rootFolderName;
+
+                        // 从文件路径构建条目（文件夹和文件）
+                        const pathToFolderMap = new Map(); // 路径 -> 文件夹条目
+                        const allFileEntries = [];
+
+                        // 由于可能文件数量巨大，使用 setTimeout 分批处理以避免阻塞 UI
+                        let fileIndex = 0;
+                        const processNextBatch = () => {
+                            const batchSize = 500;
+                            const endIndex = Math.min(fileIndex + batchSize, fileList.length);
+                            for (let i = fileIndex; i < endIndex; i++) {
+                                const file = fileList[i];
+                                const relativePath = file.webkitRelativePath; // 例如 "Root/Sub/file.txt"
+                                const parts = relativePath.split('/');
+                                const fileName = parts[parts.length - 1];
+                                const filePath = relativePath;
+                                const depth = parts.length - 1;
+                                allFileEntries.push({
+                                    name: fileName,
+                                    path: filePath,
+                                    type: 'file',
+                                    depth: depth,
+                                    originalIndex: i + 1, // 临时索引，后面统一重新分配
+                                });
+                                // 构建各级文件夹路径
+                                let folderPath = '';
+                                for (let j = 0; j < parts.length - 1; j++) {
+                                    folderPath = folderPath ? `${folderPath}/${parts[j]}` : parts[j];
+                                    if (!pathToFolderMap.has(folderPath)) {
+                                        const folderDepth = folderPath.split('/').length - 1;
+                                        pathToFolderMap.set(folderPath, {
+                                            name: parts[j],
+                                            path: folderPath,
+                                            type: 'folder',
+                                            depth: folderDepth,
+                                            originalIndex: 0, // 占位
+                                        });
+                                    }
+                                }
+                            }
+                            fileIndex = endIndex;
+                            if (fileIndex < fileList.length) {
+                                // 继续下一批
+                                setTimeout(processNextBatch, 0);
+                            } else {
+                                // 处理完成
+                                const folderEntries = Array.from(pathToFolderMap.values());
+                                const combinedEntries = [...folderEntries, ...allFileEntries];
+                                combinedEntries.forEach((entry, index) => {
+                                    entry.originalIndex = index + 1;
+                                });
+                                allEntries = combinedEntries;
+                                applySortingToAllEntries();
+                                updateDepthSelectOptions();
+                                renderTable();
+                                updateStatisticsAndButtons();
+                                lastUpdateElement.textContent = `📅 更新于 ${new Date().toLocaleString()}`;
+                                setStatus(`✅ 完成 — 共 ${allEntries.length} 个条目（降级模式）`, false);
+                                showToast(`✅ 遍历完成！共 ${allEntries.length} 个条目（注意：空文件夹未包含）`, 3000);
+                                cleanup(true);
+                            }
+                        };
+
+                        processNextBatch();
+                    });
+
+                    fileInput.addEventListener('cancel', () => {
+                        setStatus('已取消', false);
+                        cleanup(false);
+                    });
+
+                    fileInput.click();
+                });
+            }
+
+            // ========== 拖放文件夹支持 ==========
+
+            /**
+             * 处理拖放事件（当用户拖入文件夹时）
+             * @param {DragEvent} event - 拖放事件
+             */
+            function handleDrop(event) {
+                event.preventDefault();
+                dropOverlayElement.classList.remove('active');
+                if (isTraversing) {
+                    showToast('⚠️ 正在遍历中，请先取消当前遍历', 2000);
+                    return;
+                }
+                const items = event.dataTransfer.items;
+                if (items.length === 0) return;
+                // 只处理第一个条目（通常是文件夹）
+                const firstItem = items[0];
+                if (firstItem.kind === 'file') {
+                    const entry = firstItem.webkitGetAsEntry();
+                    if (entry && entry.isDirectory) {
+                        startTraversalWithDirectoryEntry(entry);
+                    } else {
+                        showToast('⚠️ 请拖入文件夹，而不是单个文件', 3000);
+                    }
+                }
+            }
+
+            /**
+             * 使用 FileSystemDirectoryEntry 开始遍历（拖放方案）
+             * @param {FileSystemDirectoryEntry} directoryEntry - 目录条目
+             */
+            async function startTraversalWithDirectoryEntry(directoryEntry) {
+                rootFolderName = directoryEntry.name;
+                rootPathDisplayElement.textContent = rootFolderName;
+                setStatus('正在遍历（拖放）…', true);
+                isTraversing = true;
+                setButtonsEnabledDuringTraversal(false);
+                buttonCancelTraversal.style.display = 'inline-flex';
+                buttonCancelTraversal.disabled = false;
+                buttonShowErrors.style.display = 'none';
+
+                // 清空旧数据
+                allEntries = [];
+                filteredEntriesForDisplay = [];
+                traversalErrorLog = [];
+                currentPage = 1;
+                maxDepthLimit = Infinity;
+                depthSelectElement.value = 'all';
+                depthFilterCountElement.textContent = '';
+                sortFieldSelectElement.value = 'default';
+                sortOrderSelectElement.value = 'asc';
+                currentSortField = 'default';
+                currentSortOrder = 'asc';
+                updateDepthSelectOptions();
+                renderTable();
+                updateStatisticsAndButtons();
+
+                const errorLog = [];
+                try {
+                    await traverseDirectoryEntry(directoryEntry, rootFolderName, errorLog, (entry) => {
+                        entry.originalIndex = allEntries.length + 1;
+                        allEntries.push(entry);
+                    });
+                    // 完成
+                    applySortingToAllEntries();
+                    updateDepthSelectOptions();
+                    currentPage = 1;
+                    renderTable();
+                    updateStatisticsAndButtons();
+                    lastUpdateElement.textContent = `📅 更新于 ${new Date().toLocaleString()}`;
+                    setStatus(`✅ 完成 — 共 ${allEntries.length} 个条目`, false);
+                    if (errorLog.length > 0) {
+                        buttonShowErrors.style.display = 'inline-flex';
+                        buttonShowErrors.disabled = false;
+                        traversalErrorLog = errorLog;
+                        showToast(`⚠️ 有 ${errorLog.length} 个目录未能完全访问，点击“警告详情”查看`, 5000);
+                        console.warn('遍历警告详情:', errorLog);
+                    } else {
+                        showToast(`✅ 遍历完成！共 ${allEntries.length} 个条目`, 2000);
+                    }
+                } catch (error) {
+                    // 取消或其他错误（拖放方案没有显式取消，因为不支持 AbortController，所以这里主要处理其他错误）
+                    console.error(error);
+                    setStatus('❌ 遍历失败', false);
+                    showToast('❌ 遍历失败: ' + (error.message || '未知错误'), 4000);
+                } finally {
+                    isTraversing = false;
+                    setButtonsEnabledDuringTraversal(true);
+                    buttonCancelTraversal.style.display = 'none';
+                    buttonCancelTraversal.disabled = true;
+                }
+            }
+
+            // ========== 统一选择文件夹入口 ==========
+
+            /**
+             * 按钮点击：选择文件夹
+             */
+            async function handleSelectFolder() {
+                if (isTraversing) return;
+                // 尝试原生 API
+                const nativeHandled = await handleSelectFolderNative();
+                if (nativeHandled) return;
+
+                // 降级方案（仅当不支持原生 API 时）
+                if (!window.showDirectoryPicker) {
+                    // 检查是否支持 webkitdirectory
+                    const tempInput = document.createElement('input');
+                    tempInput.type = 'file';
+                    if ('webkitdirectory' in tempInput) {
+                        await handleSelectFolderFallback();
+                    } else {
+                        showToast('❌ 当前浏览器不支持任何文件夹选择方式，请使用 Chrome / Edge 86+ 或拖放文件夹', 4000);
+                    }
+                }
+                // 如果原生 API 存在但调用失败（例如用户取消），不触发降级
+            }
+
+            // ========== 取消遍历 ==========
+
+            /**
+             * 取消当前遍历（仅适用于原生 API，因为支持 AbortController）
+             */
+            function cancelTraversal() {
+                if (isTraversing && abortController) {
+                    abortController.abort();
+                    showToast('⏹ 正在取消遍历…', 1500);
+                } else {
+                    // 降级或拖放方案没有取消能力，提示
+                    showToast('⚠️ 当前遍历方式不支持取消，请等待完成', 2000);
+                }
+            }
+
+            // ========== 导出功能 ==========
+
+            /**
+             * 导出为 CSV 文件
+             */
+            function exportCSV() {
+                const exportEntries = getEntriesByDepthLimit(); // 应用层级过滤
+                if (exportEntries.length === 0) {
+                    showToast('⚠️ 没有数据可导出', 2000);
+                    return;
+                }
+                // 导出时应用当前排序
+                const sortedExportEntries = applySorting(exportEntries);
+                const header = '序号,名称,路径,类型,层级\n';
+                const rows = sortedExportEntries.map((entry, index) => {
+                    const rowNumber = index + 1;
+                    const name = csvEscape(entry.name);
+                    const path = csvEscape(entry.path);
+                    const type = entry.type === 'folder' ? '文件夹' : '文件';
+                    const depth = entry.depth;
+                    return `${rowNumber},${name},${path},${type},${depth}`;
+                }).join('\n');
+                const content = header + rows;
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                const filename = `folder_list_${timestamp}.csv`;
+                downloadFile(content, filename, CSV_MIME_TYPE);
+                showToast(`📊 CSV 已导出（${sortedExportEntries.length} 条）`, 1800);
+            }
+
+            /**
+             * 导出为纯文本路径列表
+             */
+            function exportText() {
+                const exportEntries = getEntriesByDepthLimit();
+                if (exportEntries.length === 0) {
+                    showToast('⚠️ 没有数据可导出', 2000);
+                    return;
+                }
+                const sortedExportEntries = applySorting(exportEntries);
+                const lines = sortedExportEntries.map(entry => entry.path);
+                const content = lines.join('\n');
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                const filename = `folder_paths_${timestamp}.txt`;
+                downloadFile(content, filename, TEXT_MIME_TYPE);
+                showToast(`📄 文本已导出（${sortedExportEntries.length} 条）`, 1800);
+            }
+
+            /**
+             * 创建下载文件
+             * @param {string} content - 文件内容
+             * @param {string} filename - 文件名
+             * @param {string} mimeType - MIME 类型
+             */
+            function downloadFile(content, filename, mimeType) {
+                const blob = new Blob([content], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                setTimeout(() => URL.revokeObjectURL(url), 5000);
+            }
+
+            // ========== 复制全部路径 ==========
+
+            /**
+             * 复制所有路径到剪贴板（应用层级过滤和排序）
+             */
+            function copyAllPaths() {
+                const exportEntries = getEntriesByDepthLimit();
+                if (exportEntries.length === 0) {
+                    showToast('⚠️ 没有数据', 1500);
+                    return;
+                }
+                const sortedExportEntries = applySorting(exportEntries);
+                const text = sortedExportEntries.map(entry => entry.path).join('\n');
+                copyToClipboard(text, `✅ 已复制 ${sortedExportEntries.length} 条路径`);
+            }
+
+            // ========== 清空数据 ==========
+
+            /**
+             * 清空所有数据
+             */
+            function clearAllData() {
+                if (allEntries.length === 0) return;
+                allEntries = [];
+                filteredEntriesForDisplay = [];
+                traversalErrorLog = [];
+                currentPage = 1;
+                maxDepthLimit = Infinity;
+                depthSelectElement.value = 'all';
+                depthFilterCountElement.textContent = '';
+                sortFieldSelectElement.value = 'default';
+                sortOrderSelectElement.value = 'asc';
+                currentSortField = 'default';
+                currentSortOrder = 'asc';
+                updateDepthSelectOptions(); // 重置选项
+                renderTable();
+                updateStatisticsAndButtons();
+                rootPathDisplayElement.textContent = '未选择';
+                lastUpdateElement.textContent = '';
+                buttonShowErrors.style.display = 'none';
+                setStatus('已清空', false);
+                showToast('🗑 已清空所有数据', 1500);
+            }
+
+            // ========== 搜索防抖 ==========
+
+            let searchTimer = null;
+
+            /**
+             * 处理搜索输入（防抖）
+             */
+            function handleSearchInput() {
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(() => {
+                    currentPage = 1; // 搜索时重置到第一页
+                    renderTable();
+                }, 200);
+            }
+
+            // ========== 层级选择变更 ==========
+
+            /**
+             * 处理层级深度选择变更
+             */
+            function onDepthChange() {
+                const value = depthSelectElement.value;
+                maxDepthLimit = value === 'all' ? Infinity : parseInt(value, 10);
+                currentPage = 1;
+                renderTable();
+                updateDepthFilterCount();
+                const count = getEntriesByDepthLimit().length;
+                showToast(`当前层级过滤显示 ${count} 条（${value === 'all' ? '不限深度' : '≤ ' + value + ' 层'}）`, 1500);
+            }
+
+            // ========== 排序变更 ==========
+
+            /**
+             * 处理排序字段或方向变更
+             */
+            function onSortChange() {
+                currentSortField = sortFieldSelectElement.value;
+                currentSortOrder = sortOrderSelectElement.value;
+                // 注意：排序直接应用于 allEntries，需要更新排序后的数据
+                applySortingToAllEntries();
+                currentPage = 1;
+                renderTable();
+                showToast(`排序方式已更新`, 1000);
+            }
+
+            // ========== 分页按钮事件 ==========
+
+            function bindPaginationEvents() {
+                buttonPreviousPage.addEventListener('click', function() {
+                    if (currentPage > 1) {
+                        goToPage(currentPage - 1);
+                    }
+                });
+                buttonNextPage.addEventListener('click', function() {
+                    if (currentPage < totalPages) {
+                        goToPage(currentPage + 1);
+                    }
+                });
+            }
+
+            // ========== 错误弹窗 ==========
+
+            /**
+             * 显示错误详情弹窗
+             */
+            function showErrorModal() {
+                if (traversalErrorLog.length === 0) return;
+                errorListElement.innerHTML = '';
+                traversalErrorLog.forEach(errorMessage => {
+                    const li = document.createElement('li');
+                    li.textContent = errorMessage;
+                    errorListElement.appendChild(li);
+                });
+                errorModalOverlayElement.classList.add('active');
+            }
+
+            /**
+             * 关闭错误详情弹窗
+             */
+            function closeErrorModal() {
+                errorModalOverlayElement.classList.remove('active');
+            }
+
+            // ========== 拖放事件监听 ==========
+
+            function setupDragAndDrop() {
+                window.addEventListener('dragover', (event) => {
+                    event.preventDefault();
+                    if (!isTraversing) {
+                        dropOverlayElement.classList.add('active');
+                    }
+                });
+                window.addEventListener('dragleave', (event) => {
+                    if (event.relatedTarget === null) {
+                        dropOverlayElement.classList.remove('active');
+                    }
+                });
+                window.addEventListener('drop', (event) => {
+                    event.preventDefault();
+                    dropOverlayElement.classList.remove('active');
+                    handleDrop(event);
+                });
+            }
+
+            // ========== 初始化 ==========
+
+            /**
+             * 初始化应用
+             */
+            function initializeApplication() {
+                // 按钮事件
+                buttonSelectFolder.addEventListener('click', handleSelectFolder);
+                buttonCancelTraversal.addEventListener('click', cancelTraversal);
+                buttonExportCSV.addEventListener('click', exportCSV);
+                buttonExportText.addEventListener('click', exportText);
+                buttonClearAll.addEventListener('click', clearAllData);
+                buttonCopyAllPaths.addEventListener('click', copyAllPaths);
+                buttonShowErrors.addEventListener('click', showErrorModal);
+                buttonCloseErrorModal.addEventListener('click', closeErrorModal);
+                searchInputElement.addEventListener('input', handleSearchInput);
+                depthSelectElement.addEventListener('change', onDepthChange);
+                sortFieldSelectElement.addEventListener('change', onSortChange);
+                sortOrderSelectElement.addEventListener('change', onSortChange);
+                bindPaginationEvents();
+
+                // 拖放支持
+                setupDragAndDrop();
+
+                // 初始状态
+                depthSelectElement.disabled = true;
+                sortFieldSelectElement.disabled = true;
+                sortOrderSelectElement.disabled = true;
+                depthSelectElement.value = 'all';
+                sortFieldSelectElement.value = 'default';
+                sortOrderSelectElement.value = 'asc';
+                renderTable();
+                updateStatisticsAndButtons();
+                setStatus('就绪 — 请选择文件夹或拖入', false);
+                rootPathDisplayElement.textContent = '未选择';
+                versionInfoElement.textContent = 'v2.0.0';
+
+                // 键盘快捷键：Ctrl+F 聚焦搜索
+                document.addEventListener('keydown', (event) => {
+                    if ((event.ctrlKey || event.metaKey) && event.key === 'f') {
+                        event.preventDefault();
+                        searchInputElement.focus();
+                    }
+                    if (event.key === 'Escape') {
+                        searchInputElement.blur();
+                        closeErrorModal();
+                    }
+                });
+
+                console.log('📁 文件夹遍历工具已加载 (v2.0.0)');
+                console.log('💡 支持 File System Access API、拖放、层级限制、排序与分页显示');
+            }
+
+            // DOM 就绪后执行初始化
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initializeApplication);
+            } else {
+                initializeApplication();
+            }
+
+        })();
+    </script>
+</body>
+</html>
